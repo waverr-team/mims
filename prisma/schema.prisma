@@ -1,0 +1,73 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("TS_DB_URL")
+  extensions = [timescaledb, timescaledb_toolkit]
+}
+
+model MarketData {
+  id        String   @default(cuid())
+  date      DateTime @db.Timestamp()
+  pairId    String
+  open      Float    @db.DoublePrecision
+  high      Float    @db.DoublePrecision
+  low       Float    @db.DoublePrecision
+  close     Float    @db.DoublePrecision
+  volume    Float    @db.DoublePrecision
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pair       Pair         @relation(fields: [pairId], references: [id], onDelete: Cascade)
+  Prediction Prediction[]
+
+  @@id([id, date])
+  @@unique([pairId, date(sort: Desc)])
+  @@map(name: "market_data")
+}
+
+model Prediction {
+  id             String   @default(cuid())
+  date           DateTime @db.Timestamp()
+  predictionDate DateTime @db.Timestamp()
+  fromId         String
+  value          Float    @db.DoublePrecision
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  modelVersion   String
+
+  from MarketData @relation(fields: [fromId, date], references: [id, date], onDelete: Cascade)
+
+  @@id([id, date])
+  @@unique([fromId, date(sort: Desc)])
+  @@map(name: "prediction")
+}
+
+model Pair {
+  id        String   @id @default(cuid())
+  base      String
+  quote     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  brokerId  String
+
+  broker     Broker       @relation(fields: [brokerId], references: [id], onDelete: Cascade)
+  marketData MarketData[]
+
+  @@unique([base, quote, brokerId])
+  @@map(name: "pair")
+}
+
+model Broker {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pairs Pair[]
+
+  @@map(name: "broker")
+}

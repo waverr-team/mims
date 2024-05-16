@@ -1,13 +1,13 @@
 import type { Request, Response } from 'express';
 import type {
-	addPairSchema,
-	deletePairSchema,
-	findPairSchema,
+	AddPairSchema,
+	DeletePairSchema,
+	FindPairSchema,
 } from '../schemas/pairSchema';
 import * as pairService from '../services/pairService';
 
 export const createPair = async (req: Request, res: Response) => {
-	const { base, quote, broker } = req.body as addPairSchema['body'];
+	const { base, quote, broker } = req.body as AddPairSchema['body'];
 
 	const pair = await pairService.createPair(base, quote, broker);
 
@@ -15,7 +15,7 @@ export const createPair = async (req: Request, res: Response) => {
 };
 
 export const deletePair = async (req: Request, res: Response) => {
-	const pairId = req.params.id as deletePairSchema['params']['id'];
+	const pairId = req.params.id as DeletePairSchema['params']['id'];
 
 	const pair = await pairService.deletePair(pairId);
 
@@ -29,7 +29,7 @@ export const getPairs = async (req: Request, res: Response) => {
 };
 
 export const findPair = async (req: Request, res: Response) => {
-	const { base, quote, broker } = req.query as findPairSchema['query'];
+	const { base, quote, broker } = req.query as FindPairSchema['query'];
 
 	const pair = await pairService.findPair(base, quote, broker);
 

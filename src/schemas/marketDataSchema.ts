@@ -92,4 +92,4 @@ export const marketDataSchema = z.object({
 			return dayjs.utc(value.start).isBefore(dayjs.utc(value.end));
 		}, 'Start date must be before end date'),
 });
-export type marketDataSchema = z.infer<typeof marketDataSchema>;
+export type MarketDataSchema = z.infer<typeof marketDataSchema>;

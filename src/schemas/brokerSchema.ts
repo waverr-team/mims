@@ -12,5 +12,5 @@ export const deleteBrokerSchema = z.object({
 	}),
 });
 
-export type addBrokerSchema = z.infer<typeof addBrokerSchema>;
-export type deleteBrokerSchema = z.infer<typeof deleteBrokerSchema>;
+export type AddBrokerSchema = z.infer<typeof addBrokerSchema>;
+export type DeleteBrokerSchema = z.infer<typeof deleteBrokerSchema>;

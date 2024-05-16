@@ -23,6 +23,6 @@ export const findPairSchema = z.object({
 	}),
 });
 
-export type addPairSchema = z.infer<typeof addPairSchema>;
-export type deletePairSchema = z.infer<typeof deletePairSchema>;
-export type findPairSchema = z.infer<typeof findPairSchema>;
+export type AddPairSchema = z.infer<typeof addPairSchema>;
+export type DeletePairSchema = z.infer<typeof deletePairSchema>;
+export type FindPairSchema = z.infer<typeof findPairSchema>;

@@ -3,6 +3,8 @@ import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import utc from 'dayjs/plugin/utc';
 import type { marketDataSchema } from '../schemas/marketDataSchema';
+import { StatusCodes } from 'http-status-codes';
+import { AppError } from '../middleware/errorMiddleware';
 
 dayjs.extend(duration);
 dayjs.extend(utc);
@@ -19,35 +21,44 @@ type MarketData = {
 	[key: string]: number | Date | null;
 }[];
 
-export default class MarketDataService {
-	constructor(private prisma: PrismaClient) {
-		this.prisma = prisma;
+export const getMarketData = async (
+	body: marketDataSchema['body'],
+): Promise<MarketData> => {
+	const { base, quote, broker, start, end, interval, indicators } =
+		body as unknown as marketDataSchema['body'];
+
+	const pair = await prisma.pair.findFirst({
+		where: {
+			base,
+			quote,
+			broker: {
+				name: broker,
+			},
+		},
+	});
+
+	if (!pair) {
+		throw new AppError('Pair not found', StatusCodes.NOT_FOUND);
 	}
 
-	async getMarketData(
-		body: marketDataSchema['body'],
-		pairId: string,
-	): Promise<MarketData> {
-		const { start, end, interval, indicators } = body;
+	let ajustedStart = dayjs.utc(start);
+	let maxPeriod: number | undefined;
+	const intervalDuration = dayjs.duration(interval);
 
-		let ajustedStart = dayjs.utc(start);
-		let maxPeriod: number | undefined;
-		const intervalDuration = dayjs.duration(interval);
+	if (typeof indicators !== 'undefined') {
+		maxPeriod = Math.max(
+			...indicators.flatMap((indicator) =>
+				indicator.parameters.map((p) => p.value),
+			),
+		);
 
-		if (typeof indicators !== 'undefined') {
-			maxPeriod = Math.max(
-				...indicators.flatMap((indicator) =>
-					indicator.parameters.map((p) => p.value),
-				),
-			);
+		ajustedStart = ajustedStart.subtract(
+			intervalDuration.asMinutes() * maxPeriod,
+			'minutes',
+		);
+	}
 
-			ajustedStart = ajustedStart.subtract(
-				intervalDuration.asMinutes() * maxPeriod,
-				'minutes',
-			);
-		}
-
-		const marketData = (await this.prisma.$queryRaw`
+	const marketData = (await prisma.$queryRaw`
             SELECT
                 date,
                 close(candlestick) AS close,
@@ -61,7 +72,7 @@ export default class MarketDataService {
                     time_bucket(${interval}::interval, date) AS time_bucket,
                     rollup(candlestick(date, open, high, low, close, volume))
                 FROM market_data
-                where "pairId"= ${pairId} 
+                where "pairId"= ${pair.id} 
                 AND date >= ${ajustedStart.toDate()} 
                 AND date <= ${dayjs.utc(end).toDate()}
                 group by time_bucket
@@ -69,39 +80,43 @@ export default class MarketDataService {
             order by date ASC;
         `) as MarketData;
 
-		if (typeof indicators !== 'undefined') {
-			for (const indicator of indicators) {
-				if (indicator.name === 'sma') {
-					const sma = this.simpleMovingAverage(
-						marketData,
-						indicator.parameters[0].value,
-					);
-					marketData.forEach((data, index) => {
-						data[`sma_${indicator.parameters[0].value}`] = sma[index];
-					});
-				} else if (indicator.name === 'ema') {
-					// Calculate EMA
-				} else if (indicator.name === 'rsi') {
-					// Calculate RSI
-				} else if (indicator.name === 'macd') {
-					// Calculate MACD
-				}
+	if (typeof indicators !== 'undefined') {
+		for (const indicator of indicators) {
+			if (indicator.name === 'sma') {
+				const sma = simpleMovingAverage(
+					marketData,
+					indicator.parameters[0].value,
+				);
+				marketData.forEach((data, index) => {
+					data[`sma_${indicator.parameters[0].value}`] = sma[index];
+				});
+			} else if (indicator.name === 'ema') {
+				// Calculate EMA
+			} else if (indicator.name === 'rsi') {
+				// Calculate RSI
+			} else if (indicator.name === 'macd') {
+				// Calculate MACD
 			}
 		}
-
-		return marketData.slice(maxPeriod);
 	}
 
-	simpleMovingAverage(marketData: MarketData, period: number) {
-		const sma = marketData.map((data, index) => {
-			if (index < period - 1) {
-				return null;
-			}
-			const sum = marketData
-				.slice(index - period + 1, index + 1)
-				.reduce((acc, data) => acc + data.close, 0);
-			return sum / period;
-		});
-		return sma;
-	}
-}
+	return marketData.slice(maxPeriod);
+};
+
+const simpleMovingAverage = (marketData: MarketData, period: number) => {
+	const sma = marketData.map((data, index) => {
+		if (index < period - 1) {
+			return null;
+		}
+		const sum = marketData
+			.slice(index - period + 1, index + 1)
+			.reduce((acc, data) => acc + data.close, 0);
+		return sum / period;
+	});
+	return sma;
+};
+
+const exponentialMovingAverage = async (
+	marketData: MarketData,
+	period: number,
+) => {};

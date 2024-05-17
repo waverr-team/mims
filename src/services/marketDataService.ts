@@ -106,7 +106,7 @@ const checkMarketDataAvailability = async (
 			start: string;
 			end: string;
 		}[],
-	).some((range) => requestInterval.minus(range).length > 0);
+	).some((range) => requestInterval.minus(range).length === 0);
 };
 
 const queryMarketData = async (

@@ -13,7 +13,6 @@ app.listen(env.MIMS_PORT, env.MIMS_HOST, () => {
 });
 
 app.use(bodyParser.json());
-app.use(errorMiddleware);
 
 app.get('/', (req, res) => {
 	res.send(env);
@@ -22,3 +21,5 @@ app.get('/', (req, res) => {
 app.use('/marketData', marketDataRouter);
 app.use('/pair', pairRouter);
 app.use('/broker', brokerRouter);
+
+app.use(errorMiddleware);

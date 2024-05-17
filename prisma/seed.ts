@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { type Broker, PrismaClient } from '@prisma/client';
+import { type Broker, PrismaClient, Pair } from '@prisma/client';
 import { parse } from 'csv-parse/sync';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -60,11 +60,27 @@ async function main() {
 
 	// Seed the pairs
 
+	const seedMaxDate = dayjs(
+		cryptoData
+			.map((crypto) =>
+				dayjs.utc(crypto.timestamp, 'YYYY-MM-DD HH:mm:ss').valueOf(),
+			)
+			.reduce((a, b) => Math.max(a, b)),
+	).toISOString();
+	const seedMinDate = dayjs(
+		cryptoData
+			.map((crypto) =>
+				dayjs.utc(crypto.timestamp, 'YYYY-MM-DD HH:mm:ss').valueOf(),
+			)
+			.reduce((a, b) => Math.min(a, b)),
+	).toISOString();
+
 	await prisma.pair.createMany({
 		data: symbolList.map((pair) => ({
 			base: pair.base,
 			quote: pair.quote,
 			brokerId: coinbase.id,
+			ranges: [{ start: seedMinDate, end: seedMaxDate }],
 		})),
 	});
 

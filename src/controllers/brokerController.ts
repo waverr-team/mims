@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { type Broker, PrismaClient } from '@prisma/client';
 import type { Request, Response } from 'express';
 import * as brokerService from '../services/brokerService';
 
@@ -9,13 +9,13 @@ import type {
 
 const prisma = new PrismaClient();
 
-export const getBrokers = async (req: Request, res: Response) => {
+export const getBrokers = async (req: Request, res: Response<Broker[]>) => {
 	const brokers = await brokerService.getBrokers();
 
 	res.json(brokers);
 };
 
-export const createBroker = async (req: Request, res: Response) => {
+export const createBroker = async (req: Request, res: Response<Broker>) => {
 	const brokerInput = req.body as AddBrokerSchema['body'];
 
 	const broker = await brokerService.createBroker(brokerInput.name);
@@ -23,7 +23,7 @@ export const createBroker = async (req: Request, res: Response) => {
 	res.json(broker);
 };
 
-export const deleteBroker = async (req: Request, res: Response) => {
+export const deleteBroker = async (req: Request, res: Response<Broker>) => {
 	const brokerId = req.params.id as DeleteBrokerSchema['params']['id'];
 
 	const broker = await brokerService.deleteBroker(brokerId);

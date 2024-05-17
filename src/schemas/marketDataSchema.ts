@@ -88,8 +88,24 @@ export const marketDataSchema = z.object({
 				.nonempty()
 				.optional(),
 		})
-		.refine((value) => {
-			return dayjs.utc(value.start).isBefore(dayjs.utc(value.end));
-		}, 'Start date must be before end date'),
+		.superRefine((val, ctx) => {
+			if (dayjs.utc(val.start).isAfter(dayjs.utc(val.end))) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: 'End date must be after start date',
+				});
+			}
+
+			if (
+				dayjs.utc(val.end).diff(dayjs.utc(val.start), 'minute') <
+				dayjs.duration(val.interval).asMinutes()
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message:
+						'Interval must be inferior to the difference between start and end',
+				});
+			}
+		}),
 });
 export type MarketDataSchema = z.infer<typeof marketDataSchema>;

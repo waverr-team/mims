@@ -53,6 +53,7 @@ model Pair {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   brokerId  String
+  ranges    Json[]
 
   broker     Broker       @relation(fields: [brokerId], references: [id], onDelete: Cascade)
   marketData MarketData[]

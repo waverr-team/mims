@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../middleware/errorMiddleware';
+import Interval from '../utils/interval';
 
 const prisma = new PrismaClient();
 
@@ -42,6 +43,8 @@ export const createPair = async (
 			},
 		},
 	});
+
+	return pair;
 };
 
 export const getPairs = async () => {
@@ -70,6 +73,8 @@ export const deletePair = async (id: string) => {
 			id,
 		},
 	});
+
+	return pair;
 };
 
 export const findPair = async (base: string, quote: string, broker: string) => {

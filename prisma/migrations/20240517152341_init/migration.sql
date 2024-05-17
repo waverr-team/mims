@@ -1,6 +1,3 @@
--- CreateExtension
-CREATE EXTENSION IF NOT EXISTS "timescaledb_toolkit";
-
 -- CreateTable
 CREATE TABLE "market_data" (
     "id" TEXT NOT NULL,
@@ -51,6 +48,7 @@ CREATE TABLE "pair" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "brokerId" TEXT NOT NULL,
+    "ranges" JSONB[],
 
     CONSTRAINT "pair_pkey" PRIMARY KEY ("id")
 );

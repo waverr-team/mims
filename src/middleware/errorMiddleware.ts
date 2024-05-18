@@ -31,6 +31,8 @@ export function errorMiddleware(
 		return;
 	}
 
+	console.error(error);
+
 	res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
 		error: 'Internal server error',
 	});

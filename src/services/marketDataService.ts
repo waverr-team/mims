@@ -69,27 +69,61 @@ export const getMarketData = async (
 		),
 	};
 
-	// if (typeof indicators !== 'undefined') {
-	// 	for (const indicator of indicators) {
-	// 		if (indicator.name === 'sma') {
-	// 			const sma = simpleMovingAverage(
-	// 				marketData,
-	// 				indicator.parameters[0].value,
-	// 			);
-	// 			marketData.forEach((data, index) => {
-	// 				data[`sma_${indicator.parameters[0].value}`] = sma[index];
-	// 			});
-	// 		} else if (indicator.name === 'ema') {
-	// 			// Calculate EMA
-	// 		} else if (indicator.name === 'rsi') {
-	// 			// Calculate RSI
-	// 		} else if (indicator.name === 'macd') {
-	// 			// Calculate MACD
-	// 		}
-	// 	}
-	// }
+	if (typeof indicators !== 'undefined') {
+		const indicatorsNeeded: string[] = [];
 
-	marketData.data = marketData.data.slice(maxPeriod);
+		for (const indicator of indicators) {
+			if (indicator.name === 'sma') {
+				indicatorsNeeded.push(
+					simpleMovingAverage(marketData, indicator.parameters[0].value),
+				);
+			} else if (indicator.name === 'ema') {
+				indicatorsNeeded.push(
+					exponentialMovingAverage(
+						marketData,
+						indicator.parameters.find((p) => p.name === 'smoothing')
+							?.value as number,
+						indicator.parameters.find((p) => p.name === 'period')
+							?.value as number,
+					),
+				);
+			} else if (indicator.name === 'rsi') {
+				indicatorsNeeded.push(
+					relativeStrengthIndex(marketData, indicator.parameters[0].value),
+				);
+			} else if (indicator.name === 'macd') {
+				indicatorsNeeded.push(
+					movingAverageConvergenceDivergence(
+						marketData,
+						indicator.parameters.find((p) => p.name === 'longPeriod')
+							?.value as number,
+						indicator.parameters.find((p) => p.name === 'shortPeriod')
+							?.value as number,
+						indicator.parameters.find((p) => p.name === 'smoothing')
+							?.value as number,
+					),
+				);
+			}
+		}
+
+		marketData.data.map((data) => {
+			data[6] = Object.fromEntries(
+				Object.entries(data[6]).filter(([key]) =>
+					indicatorsNeeded.includes(key),
+				),
+			);
+		});
+
+		marketData.indicatorKeys = Object.fromEntries(
+			Object.entries(marketData.indicatorKeys).filter(([key]) =>
+				indicatorsNeeded.includes(key),
+			),
+		);
+	}
+
+	marketData.data = marketData.data.filter((data) =>
+		dayjs.utc(data[0]).isAfter(start),
+	);
 
 	return marketData;
 };
@@ -137,23 +171,186 @@ const queryMarketData = async (
 		order by date ASC;
 	`) as { array: Array<number> }[];
 
-	return marketDataResponse.map((data) => data.array) as MarketDataBlock[];
+	return marketDataResponse.map((data) => {
+		const [date, close, open, high, low, volume] = data.array;
+
+		return [
+			dayjs.utc(date * 1000).toISOString(),
+			open,
+			high,
+			low,
+			close,
+			volume,
+			{},
+		] as MarketDataBlock;
+	});
 };
 
-// const simpleMovingAverage = (marketData: MarketDataBlock[], period: number) => {
-// 	const sma = marketData.map((data, index) => {
-// 		if (index < period - 1) {
-// 			return null;
-// 		}
-// 		const sum = marketData
-// 			.slice(index - period + 1, index + 1)
-// 			.reduce((acc, data) => acc + data.close, 0);
-// 		return sum / period;
-// 	});
-// 	return sma;
-// };
+const simpleMovingAverage = (marketData: MarketData, period: number) => {
+	const indicatorKey = `sma_${period}`;
 
-const exponentialMovingAverage = async (
+	if (indicatorKey in marketData.indicatorKeys) {
+		return indicatorKey;
+	}
+
+	marketData.indicatorKeys[indicatorKey] = {
+		indicatorId: 1,
+		parameters: [{ name: 'period', value: period }],
+	};
+
+	for (let i = 0; i < marketData.data.length; i++) {
+		if (i < period - 1) {
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: { value: null },
+			};
+		} else {
+			let sum = 0;
+			for (let j = i - period + 1; j <= i; j++) {
+				sum += marketData.data[j][4];
+			}
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: { value: sum / period },
+			};
+		}
+	}
+
+	return indicatorKey;
+};
+
+const exponentialMovingAverage = (
 	marketData: MarketData,
+	smoothing: number,
 	period: number,
-) => {};
+) => {
+	const indicatorKey = `ema_${period}_${smoothing}`;
+
+	if (indicatorKey in marketData.indicatorKeys) {
+		return indicatorKey;
+	}
+
+	marketData.indicatorKeys[indicatorKey] = {
+		indicatorId: 2,
+		parameters: [
+			{ name: 'period', value: period },
+			{ name: 'smoothing', value: smoothing },
+		],
+	};
+
+	for (let i = 0; i < marketData.data.length; i++) {
+		if (i < period - 1) {
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: { value: null },
+			};
+		} else if (i === period - 1) {
+			let sum = 0;
+			for (let j = i - period + 1; j <= i; j++) {
+				sum += marketData.data[j][4];
+			}
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: { value: sum / period },
+			};
+		} else {
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: {
+					value:
+						(marketData.data[i - 1][6][indicatorKey].value as number) *
+							(1 - smoothing / (period + 1)) +
+						(smoothing / (period + 1)) * marketData.data[i][4],
+				},
+			};
+		}
+	}
+
+	return indicatorKey;
+};
+
+const relativeStrengthIndex = (marketData: MarketData, period: number) => {
+	const indicatorKey = `rsi_${period}`;
+
+	if (indicatorKey in marketData.indicatorKeys) {
+		return indicatorKey;
+	}
+
+	marketData.indicatorKeys[indicatorKey] = {
+		indicatorId: 3,
+		parameters: [{ name: 'period', value: period }],
+	};
+
+	for (let i = 0; i < marketData.data.length; i++) {
+		if (i < period) {
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: { value: null },
+			};
+		} else {
+			const gains = [];
+			const losses = [];
+
+			for (let j = i - period + 1; j <= i; j++) {
+				const diff = marketData.data[j][4] - marketData.data[j - 1][4];
+				if (diff > 0) {
+					gains.push(diff);
+				} else {
+					losses.push(-diff);
+				}
+			}
+
+			const avgGain = gains.reduce((acc, curr) => acc + curr, 0) / period;
+			const avgLoss = losses.reduce((acc, curr) => acc + curr, 0) / period;
+
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: {
+					value: 100 - 100 / (1 + avgGain / avgLoss),
+				},
+			};
+		}
+	}
+
+	return indicatorKey;
+};
+
+const movingAverageConvergenceDivergence = (
+	marketData: MarketData,
+	longPeriod: number,
+	shortPeriod: number,
+	smoothing: number,
+) => {
+	const indicatorKey = `macd_${longPeriod}_${shortPeriod}_${smoothing}`;
+
+	if (indicatorKey in marketData.indicatorKeys) {
+		return indicatorKey;
+	}
+
+	exponentialMovingAverage(marketData, smoothing, longPeriod);
+	exponentialMovingAverage(marketData, smoothing, shortPeriod);
+
+	marketData.indicatorKeys[indicatorKey] = {
+		indicatorId: 4,
+		parameters: [
+			{ name: 'longPeriod', value: longPeriod },
+			{ name: 'shortPeriod', value: shortPeriod },
+			{ name: 'smoothing', value: smoothing },
+		],
+	};
+
+	for (let i = 0; i < marketData.data.length; i++) {
+		marketData.data[i][6] = {
+			...marketData.data[i][6],
+			[indicatorKey]: {
+				value:
+					(marketData.data[i][6][`ema_${shortPeriod}_${smoothing}`]
+						.value as number) -
+					(marketData.data[i][6][`ema_${longPeriod}_${smoothing}`]
+						.value as number),
+			},
+		};
+	}
+
+	return indicatorKey;
+};

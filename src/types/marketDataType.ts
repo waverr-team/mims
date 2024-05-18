@@ -12,7 +12,10 @@ export interface MarketData {
 	indicatorKeys: {
 		[key: string]: {
 			indicatorId: number;
-			parameters: object;
+			parameters: {
+				name: string;
+				value: number;
+			}[];
 		};
 	};
 	data: Array<MarketDataBlock>;

@@ -44,28 +44,28 @@ export const marketDataSchema = z.object({
 			indicators: z
 				.union([
 					z.object({
-						name: z.enum(['sma', 'ema', 'rsi']),
+						name: z.enum(['sma', 'rsi']),
 						parameters: z
 							.array(
 								z.object({
 									name: z.enum(['period']),
-									value: z.number().positive(),
+									value: z.number().int().positive(),
 								}),
 							)
 							.length(1),
 					}),
 					z.object({
-						name: z.enum(['macd']),
+						name: z.literal('ema'),
 						parameters: z
 							.array(
 								z.union([
 									z.object({
-										name: z.literal('longPeriod'),
-										value: z.number().positive(),
+										name: z.literal('period'),
+										value: z.number().int().positive(),
 									}),
 									z.object({
-										name: z.literal('shortPeriod'),
-										value: z.number().positive(),
+										name: z.literal('smoothing'),
+										value: z.number().int().positive(),
 									}),
 								]),
 							)
@@ -73,13 +73,47 @@ export const marketDataSchema = z.object({
 							.refine(
 								(val) => {
 									const keys = val.map((v) => v.name);
+									return keys.includes('period') && keys.includes('smoothing');
+								},
+								{
+									message:
+										'Invalid parameters for EMA, smoothing and period are required',
+								},
+							),
+					}),
+
+					z.object({
+						name: z.literal('macd'),
+						parameters: z
+							.array(
+								z.union([
+									z.object({
+										name: z.literal('longPeriod'),
+										value: z.number().int().positive(),
+									}),
+									z.object({
+										name: z.literal('shortPeriod'),
+										value: z.number().int().positive(),
+									}),
+									z.object({
+										name: z.literal('smoothing'),
+										value: z.number().int().positive(),
+									}),
+								]),
+							)
+							.length(3)
+							.refine(
+								(val) => {
+									const keys = val.map((v) => v.name);
 									return (
-										keys.includes('longPeriod') && keys.includes('shortPeriod')
+										keys.includes('longPeriod') &&
+										keys.includes('shortPeriod') &&
+										keys.includes('smoothing')
 									);
 								},
 								{
 									message:
-										'Invalid parameters for MACD, shortPeriod and longPeriod are required',
+										'Invalid parameters for MACD, longPeriod, shortPeriod and smoothing are required',
 								},
 							),
 					}),

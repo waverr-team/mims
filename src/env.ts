@@ -7,7 +7,7 @@ const env = envalid.cleanEnv(process.env, {
 	MIMS_PORT: envalid.port(),
 	MIMS_HOST: envalid.host(),
 	NODE_ENV: envalid.str({ choices: ['development', 'production'] }),
-	TS_DB_URL: envalid.url(),
+	TIMESCALE_URL: envalid.url(),
 });
 
 export default env;

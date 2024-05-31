@@ -72,38 +72,22 @@ export const getMarketData = async (
 	if (typeof indicators !== 'undefined') {
 		const indicatorsNeeded: string[] = [];
 
+		const indicatorsFunctions = {
+			sma: simpleMovingAverage,
+			ema: exponentialMovingAverage,
+			rsi: relativeStrengthIndex,
+			macd: movingAverageConvergenceDivergence,
+			shift: periodShift,
+		};
+
 		for (const indicator of indicators) {
-			if (indicator.name === 'sma') {
-				indicatorsNeeded.push(
-					simpleMovingAverage(marketData, indicator.parameters[0].value),
-				);
-			} else if (indicator.name === 'ema') {
-				indicatorsNeeded.push(
-					exponentialMovingAverage(
-						marketData,
-						indicator.parameters.find((p) => p.name === 'smoothing')
-							?.value as number,
-						indicator.parameters.find((p) => p.name === 'period')
-							?.value as number,
-					),
-				);
-			} else if (indicator.name === 'rsi') {
-				indicatorsNeeded.push(
-					relativeStrengthIndex(marketData, indicator.parameters[0].value),
-				);
-			} else if (indicator.name === 'macd') {
-				indicatorsNeeded.push(
-					movingAverageConvergenceDivergence(
-						marketData,
-						indicator.parameters.find((p) => p.name === 'longPeriod')
-							?.value as number,
-						indicator.parameters.find((p) => p.name === 'shortPeriod')
-							?.value as number,
-						indicator.parameters.find((p) => p.name === 'smoothing')
-							?.value as number,
-					),
-				);
-			}
+			indicatorsNeeded.push(
+				indicatorsFunctions[indicator.name](
+					marketData,
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+					indicator.parameters as any,
+				),
+			);
 		}
 
 		marketData.data.map((data) => {
@@ -186,7 +170,11 @@ const queryMarketData = async (
 	});
 };
 
-const simpleMovingAverage = (marketData: MarketData, period: number) => {
+const simpleMovingAverage = (
+	marketData: MarketData,
+	parameters: [{ name: 'period'; value: number }],
+) => {
+	const period = parameters[0].value;
 	const indicatorKey = `sma_${period}`;
 
 	if (indicatorKey in marketData.indicatorKeys) {
@@ -221,9 +209,14 @@ const simpleMovingAverage = (marketData: MarketData, period: number) => {
 
 const exponentialMovingAverage = (
 	marketData: MarketData,
-	smoothing: number,
-	period: number,
+	parameters: [
+		{ name: 'period'; value: number },
+		{ name: 'smoothing'; value: number },
+	],
 ) => {
+	const period = parameters.find((p) => p.name === 'period')?.value as number;
+	const smoothing = parameters.find((p) => p.name === 'smoothing')
+		?.value as number;
 	const indicatorKey = `ema_${period}_${smoothing}`;
 
 	if (indicatorKey in marketData.indicatorKeys) {
@@ -269,7 +262,11 @@ const exponentialMovingAverage = (
 	return indicatorKey;
 };
 
-const relativeStrengthIndex = (marketData: MarketData, period: number) => {
+const relativeStrengthIndex = (
+	marketData: MarketData,
+	parameters: [{ name: 'period'; value: number }],
+) => {
+	const period = parameters[0].value;
 	const indicatorKey = `rsi_${period}`;
 
 	if (indicatorKey in marketData.indicatorKeys) {
@@ -317,18 +314,32 @@ const relativeStrengthIndex = (marketData: MarketData, period: number) => {
 
 const movingAverageConvergenceDivergence = (
 	marketData: MarketData,
-	longPeriod: number,
-	shortPeriod: number,
-	smoothing: number,
+	parameters: [
+		{ name: 'longPeriod'; value: number },
+		{ name: 'shortPeriod'; value: number },
+		{ name: 'smoothing'; value: number },
+	],
 ) => {
+	const longPeriod = parameters.find((p) => p.name === 'longPeriod')
+		?.value as number;
+	const shortPeriod = parameters.find((p) => p.name === 'shortPeriod')
+		?.value as number;
+	const smoothing = parameters.find((p) => p.name === 'smoothing')
+		?.value as number;
 	const indicatorKey = `macd_${longPeriod}_${shortPeriod}_${smoothing}`;
 
 	if (indicatorKey in marketData.indicatorKeys) {
 		return indicatorKey;
 	}
 
-	exponentialMovingAverage(marketData, smoothing, longPeriod);
-	exponentialMovingAverage(marketData, smoothing, shortPeriod);
+	exponentialMovingAverage(marketData, [
+		{ name: 'period', value: longPeriod },
+		{ name: 'smoothing', value: smoothing },
+	]);
+	exponentialMovingAverage(marketData, [
+		{ name: 'period', value: shortPeriod },
+		{ name: 'smoothing', value: smoothing },
+	]);
 
 	marketData.indicatorKeys[indicatorKey] = {
 		indicatorId: 4,
@@ -350,6 +361,41 @@ const movingAverageConvergenceDivergence = (
 						.value as number),
 			},
 		};
+	}
+
+	return indicatorKey;
+};
+
+const periodShift = (
+	marketData: MarketData,
+	parameters: [{ name: 'period'; value: number }],
+) => {
+	const period = parameters[0].value;
+	const indicatorKey = `periodShift_${period}`;
+
+	if (indicatorKey in marketData.indicatorKeys) {
+		return indicatorKey;
+	}
+
+	marketData.indicatorKeys[indicatorKey] = {
+		indicatorId: 5,
+		parameters: [{ name: 'period', value: period }],
+	};
+
+	for (let i = 0; i < marketData.data.length; i++) {
+		if (i < period) {
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: { value: null },
+			};
+		} else {
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: {
+					value: marketData.data[i - period][4],
+				},
+			};
+		}
 	}
 
 	return indicatorKey;

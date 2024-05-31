@@ -44,7 +44,7 @@ export const marketDataSchema = z.object({
 			indicators: z
 				.union([
 					z.object({
-						name: z.enum(['sma', 'rsi']),
+						name: z.enum(['sma', 'rsi', 'shift']),
 						parameters: z
 							.array(
 								z.object({

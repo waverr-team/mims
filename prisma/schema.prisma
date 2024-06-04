@@ -11,7 +11,7 @@ datasource db {
 
 model MarketData {
   id        String   @default(cuid())
-  date      DateTime @db.Timestamp()
+  date      DateTime @db.Timestamptz()
   pairId    String
   open      Float    @db.DoublePrecision
   high      Float    @db.DoublePrecision
@@ -53,7 +53,6 @@ model Pair {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   brokerId  String
-  ranges    Json[]
 
   broker     Broker       @relation(fields: [brokerId], references: [id], onDelete: Cascade)
   marketData MarketData[]

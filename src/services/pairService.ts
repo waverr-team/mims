@@ -1,7 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../middleware/errorMiddleware';
-import Interval from '../utils/interval';
 
 const prisma = new PrismaClient();
 

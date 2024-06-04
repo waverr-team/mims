@@ -1,10 +1,7 @@
-CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
-CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;
-
 -- CreateTable
 CREATE TABLE "market_data" (
     "id" TEXT NOT NULL,
-    "date" TIMESTAMP NOT NULL,
+    "date" TIMESTAMPTZ NOT NULL,
     "pairId" TEXT NOT NULL,
     "open" DOUBLE PRECISION NOT NULL,
     "high" DOUBLE PRECISION NOT NULL,
@@ -51,7 +48,6 @@ CREATE TABLE "pair" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "brokerId" TEXT NOT NULL,
-    "ranges" JSONB[],
 
     CONSTRAINT "pair_pkey" PRIMARY KEY ("id")
 );

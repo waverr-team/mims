@@ -60,27 +60,11 @@ async function main() {
 
 	// Seed the pairs
 
-	const seedMaxDate = dayjs(
-		cryptoData
-			.map((crypto) =>
-				dayjs.utc(crypto.timestamp, 'YYYY-MM-DD HH:mm:ss').valueOf(),
-			)
-			.reduce((a, b) => Math.max(a, b)),
-	).toISOString();
-	const seedMinDate = dayjs(
-		cryptoData
-			.map((crypto) =>
-				dayjs.utc(crypto.timestamp, 'YYYY-MM-DD HH:mm:ss').valueOf(),
-			)
-			.reduce((a, b) => Math.min(a, b)),
-	).toISOString();
-
 	await prisma.pair.createMany({
 		data: symbolList.map((pair) => ({
 			base: pair.base,
 			quote: pair.quote,
 			brokerId: coinbase.id,
-			ranges: [{ start: seedMinDate, end: seedMaxDate }],
 		})),
 	});
 

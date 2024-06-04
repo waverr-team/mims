@@ -6,7 +6,6 @@ import type { MarketDataSchema } from '../schemas/marketDataSchema';
 import { StatusCodes } from 'http-status-codes';
 import { AppError } from '../middleware/errorMiddleware';
 import type { MarketData, MarketDataBlock } from '../types/marketDataType';
-import Interval from '../utils/interval';
 
 dayjs.extend(duration);
 dayjs.extend(utc);
@@ -46,15 +45,6 @@ export const getMarketData = async (
 		ajustedStart = ajustedStart.subtract(
 			intervalDuration.asMinutes() * maxPeriod,
 			'minutes',
-		);
-	}
-
-	if (
-		!(await checkMarketDataAvailability(pair, ajustedStart, dayjs.utc(end)))
-	) {
-		throw new AppError(
-			'Market data not available, need to contact SONAR',
-			StatusCodes.NOT_IMPLEMENTED,
 		);
 	}
 
@@ -110,21 +100,6 @@ export const getMarketData = async (
 	);
 
 	return marketData;
-};
-
-const checkMarketDataAvailability = async (
-	pair: Pair,
-	start: dayjs.Dayjs,
-	end: dayjs.Dayjs,
-) => {
-	const requestInterval = new Interval(start, end);
-
-	return Interval.fromArray(
-		pair.ranges as {
-			start: string;
-			end: string;
-		}[],
-	).some((range) => requestInterval.minus(range).length === 0);
 };
 
 const queryMarketData = async (

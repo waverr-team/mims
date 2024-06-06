@@ -15,6 +15,7 @@ import env from '../env';
 
 dayjs.extend(duration);
 dayjs.extend(utc);
+dayjs.extend(isSameOrAfter);
 
 const prisma = new PrismaClient();
 
@@ -38,6 +39,7 @@ export const getMarketData = async (
 	}
 
 	let ajustedStart = dayjs.utc(start);
+
 	let maxPeriod: number | undefined;
 	const intervalDuration = dayjs.duration(interval);
 
@@ -94,7 +96,7 @@ export const getMarketData = async (
 	}
 
 	marketData.data = marketData.data.filter((data) =>
-		dayjs.utc(data[0]).isAfter(start),
+		dayjs.utc(data[0]).isSameOrAfter(start),
 	);
 
 	return marketData;

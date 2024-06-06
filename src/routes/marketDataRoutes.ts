@@ -1,10 +1,21 @@
 import { Router } from 'express';
-import { getMarketData } from '../controllers/marketDataController';
+import {
+	getMarketData,
+	fetchMarketData,
+} from '../controllers/marketDataController';
 import { validateData } from '../middleware/validationMiddleware';
-import { marketDataSchema } from '../schemas/marketDataSchema';
+import {
+	fetchMarketDataSchema,
+	getMarketDataSchema,
+} from '../schemas/marketDataSchema';
 
 const marketDataRouter = Router();
 
-marketDataRouter.post('/', validateData(marketDataSchema), getMarketData);
+marketDataRouter.post('/', validateData(getMarketDataSchema), getMarketData);
+marketDataRouter.post(
+	'/fetch',
+	validateData(fetchMarketDataSchema),
+	fetchMarketData,
+);
 
 export default marketDataRouter;

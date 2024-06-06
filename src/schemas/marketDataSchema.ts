@@ -6,7 +6,7 @@ import { z } from 'zod';
 dayjs.extend(duration);
 dayjs.extend(utc);
 
-export const marketDataSchema = z.object({
+export const getMarketDataSchema = z.object({
 	body: z
 		.object({
 			start: z
@@ -44,7 +44,7 @@ export const marketDataSchema = z.object({
 			indicators: z
 				.union([
 					z.object({
-						name: z.enum(['sma', 'rsi', 'shift']),
+						name: z.enum(['sma', 'rsi', 'shift', 'fib']),
 						parameters: z
 							.array(
 								z.object({
@@ -142,4 +142,18 @@ export const marketDataSchema = z.object({
 			}
 		}),
 });
-export type MarketDataSchema = z.infer<typeof marketDataSchema>;
+
+export const fetchMarketDataSchema = z.object({
+	body: z.object({
+		date: z
+			.string()
+			.datetime()
+			.refine((value) => {
+				const date = dayjs.utc(value);
+				return date.isBefore(dayjs.utc()) && date.minute() % 15 === 0;
+			}, 'Invalid start date, must be before now and multiple of 15m'),
+	}),
+});
+
+export type GetMarketDataSchema = z.infer<typeof getMarketDataSchema>;
+export type FetchMarketDataSchema = z.infer<typeof fetchMarketDataSchema>;

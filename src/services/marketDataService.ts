@@ -2,11 +2,16 @@ import { type Pair, PrismaClient } from '@prisma/client';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import utc from 'dayjs/plugin/utc';
-import type { MarketDataSchema } from '../schemas/marketDataSchema';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import type {
+	FetchMarketDataSchema,
+	GetMarketDataSchema,
+} from '../schemas/marketDataSchema';
 import { StatusCodes } from 'http-status-codes';
 import { AppError } from '../middleware/errorMiddleware';
 import type { MarketData, MarketDataBlock } from '../types/marketDataType';
 import { indicatorsFunctions } from '../utils/indicators';
+import env from '../env';
 
 dayjs.extend(duration);
 dayjs.extend(utc);
@@ -14,7 +19,7 @@ dayjs.extend(utc);
 const prisma = new PrismaClient();
 
 export const getMarketData = async (
-	body: MarketDataSchema['body'],
+	body: GetMarketDataSchema['body'],
 ): Promise<MarketData> => {
 	const { base, quote, broker, start, end, interval, indicators } = body;
 
@@ -136,4 +141,58 @@ const queryMarketData = async (
 			{},
 		] as MarketDataBlock;
 	});
+};
+
+export const fetchMarketData = async (body: FetchMarketDataSchema['body']) => {
+	const { date } = body;
+
+	const pairs = await prisma.pair.findMany({
+		include: {
+			broker: true,
+		},
+	});
+
+	const getMarketData = async (pair: Pair) => {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 1000);
+
+		const pairData = await fetch(
+			`${env.SONAR_URL}/${pair.base}/${pair.quote}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				signal: controller.signal,
+			},
+		)
+			.then((res) => res.json())
+			.catch((err) => {
+				clearTimeout(timeout);
+				throw new AppError(
+					'SONAR inaccessible',
+					StatusCodes.SERVICE_UNAVAILABLE,
+				);
+			});
+
+		return pairData.json();
+	};
+
+	const fetches = pairs.map((pair) => getMarketData(pair));
+
+	const marketData = await Promise.all(fetches);
+
+	prisma.marketData.createMany({
+		data: marketData.map((data, index) => ({
+			date,
+			pairId: pairs[index].id,
+			open: data.open,
+			high: data.high,
+			low: data.low,
+			close: data.close,
+			volume: data.volume,
+		})),
+	});
+
+	return { status: 'success' };
 };

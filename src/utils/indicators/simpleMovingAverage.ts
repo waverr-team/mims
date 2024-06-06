@@ -7,7 +7,10 @@ export const simpleMovingAverage = (
 	const period = parameters[0].value;
 	const indicatorKey = `sma_${period}`;
 
-	if (indicatorKey in marketData.indicatorKeys) {
+	if (
+		indicatorKey in marketData.indicatorKeys ||
+		indicatorKey in marketData.data[0][6]
+	) {
 		return indicatorKey;
 	}
 

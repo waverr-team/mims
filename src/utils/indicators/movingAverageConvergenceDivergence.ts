@@ -17,7 +17,10 @@ export const movingAverageConvergenceDivergence = (
 		?.value as number;
 	const indicatorKey = `macd_${longPeriod}_${shortPeriod}_${smoothing}`;
 
-	if (indicatorKey in marketData.indicatorKeys) {
+	if (
+		indicatorKey in marketData.indicatorKeys ||
+		indicatorKey in marketData.data[0][6]
+	) {
 		return indicatorKey;
 	}
 

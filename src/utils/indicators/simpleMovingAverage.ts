@@ -23,7 +23,7 @@ export const simpleMovingAverage = (
 		if (i < period - 1) {
 			marketData.data[i][6] = {
 				...marketData.data[i][6],
-				[indicatorKey]: { value: null },
+				[indicatorKey]: null,
 			};
 		} else {
 			let sum = 0;

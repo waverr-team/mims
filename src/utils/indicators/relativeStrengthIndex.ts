@@ -23,7 +23,7 @@ export const relativeStrengthIndex = (
 		if (i < period) {
 			marketData.data[i][6] = {
 				...marketData.data[i][6],
-				[indicatorKey]: { value: null },
+				[indicatorKey]: null,
 			};
 		} else {
 			const gains: number[] = [];

@@ -3,6 +3,8 @@ import { movingAverageConvergenceDivergence } from './movingAverageConvergenceDi
 import { periodShift } from './periodShift';
 import { relativeStrengthIndex } from './relativeStrengthIndex';
 import { simpleMovingAverage } from './simpleMovingAverage';
+import { bollingerBands } from './bollingerBands';
+import { fibonacciRetracement } from './fibonacciRetracement';
 
 export const indicatorsFunctions = {
 	sma: simpleMovingAverage,
@@ -10,4 +12,6 @@ export const indicatorsFunctions = {
 	rsi: relativeStrengthIndex,
 	macd: movingAverageConvergenceDivergence,
 	shift: periodShift,
+	bollinger: bollingerBands,
+	fib: fibonacciRetracement,
 };

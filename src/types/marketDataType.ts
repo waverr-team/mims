@@ -5,7 +5,7 @@ export type MarketDataBlock = [
 	low: number,
 	close: number,
 	volume: number,
-	indicators: Record<string, Record<string, number | Date | null>>,
+	indicators: Record<string, Record<string, number | Date | null> | null>,
 ];
 
 export interface MarketData {

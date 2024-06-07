@@ -31,7 +31,7 @@ export const exponentialMovingAverage = (
 		if (i < period - 1) {
 			marketData.data[i][6] = {
 				...marketData.data[i][6],
-				[indicatorKey]: { value: null },
+				[indicatorKey]: null,
 			};
 		} else if (i === period - 1) {
 			let sum = 0;
@@ -47,7 +47,7 @@ export const exponentialMovingAverage = (
 				...marketData.data[i][6],
 				[indicatorKey]: {
 					value:
-						(marketData.data[i - 1][6][indicatorKey].value as number) *
+						(marketData.data[i - 1][6][indicatorKey]?.value as number) *
 							(1 - smoothing / (period + 1)) +
 						(smoothing / (period + 1)) * marketData.data[i][4],
 				},

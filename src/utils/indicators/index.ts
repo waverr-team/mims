@@ -12,6 +12,6 @@ export const indicatorsFunctions = {
 	rsi: relativeStrengthIndex,
 	macd: movingAverageConvergenceDivergence,
 	shift: periodShift,
-	bollinger: bollingerBands,
+	bb: bollingerBands,
 	fib: fibonacciRetracement,
 };

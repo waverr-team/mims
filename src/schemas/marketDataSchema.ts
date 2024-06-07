@@ -117,6 +117,21 @@ export const getMarketDataSchema = z.object({
 								},
 							),
 					}),
+					z.object({
+						name: z.literal('bb'),
+						parameters: z
+							.array(
+								z.object({
+									name: z.enum(['period', 'deviation']),
+									value: z.number().int().positive(),
+								}),
+							)
+							.length(2)
+							.refine((val) => {
+								const keys = val.map((v) => v.name);
+								return keys.includes('period') && keys.includes('deviation');
+							}),
+					}),
 				])
 				.array()
 				.nonempty()

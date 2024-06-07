@@ -24,11 +24,11 @@ export const movingAverageConvergenceDivergence = (
 		return indicatorKey;
 	}
 
-	exponentialMovingAverage(marketData, [
+	const emaLong = exponentialMovingAverage(marketData, [
 		{ name: 'period', value: longPeriod },
 		{ name: 'smoothing', value: smoothing },
 	]);
-	exponentialMovingAverage(marketData, [
+	const emaShort = exponentialMovingAverage(marketData, [
 		{ name: 'period', value: shortPeriod },
 		{ name: 'smoothing', value: smoothing },
 	]);
@@ -47,10 +47,8 @@ export const movingAverageConvergenceDivergence = (
 			...marketData.data[i][6],
 			[indicatorKey]: {
 				value:
-					(marketData.data[i][6][`ema_${shortPeriod}_${smoothing}`]
-						.value as number) -
-					(marketData.data[i][6][`ema_${longPeriod}_${smoothing}`]
-						.value as number),
+					(marketData.data[i][6][emaShort]?.value as number) -
+					(marketData.data[i][6][emaLong]?.value as number),
 			},
 		};
 	}

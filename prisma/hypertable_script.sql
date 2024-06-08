@@ -1,3 +1,6 @@
+CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit CASCADE;
+
 -- CreateHyperTable
 SELECT create_hypertable('market_data', 'date');
 

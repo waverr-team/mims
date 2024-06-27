@@ -12,17 +12,20 @@ export const bollingerBands = (
 		?.value as number;
 	const indicatorKey = `bb_${period}_${deviation}`;
 
-	if (indicatorKey in marketData.indicatorKeys) {
+	if (
+		marketData.indicators.map((ik) => ik.indicatorKey).includes(indicatorKey)
+	) {
 		return indicatorKey;
 	}
 
-	marketData.indicatorKeys[indicatorKey] = {
+	marketData.indicators.push({
+		indicatorKey,
 		indicatorId: 1,
 		parameters: [
 			{ name: 'period', value: period },
 			{ name: 'deviation', value: deviation },
 		],
-	};
+	});
 
 	const smaKey = simpleMovingAverage(marketData, [
 		{ name: 'period', value: period },

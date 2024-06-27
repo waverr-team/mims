@@ -17,7 +17,9 @@ export const movingAverageConvergenceDivergence = (
 		?.value as number;
 	const indicatorKey = `macd_${longPeriod}_${shortPeriod}_${smoothing}`;
 
-	if (indicatorKey in marketData.indicatorKeys) {
+	if (
+		marketData.indicators.map((ik) => ik.indicatorKey).includes(indicatorKey)
+	) {
 		return indicatorKey;
 	}
 
@@ -30,14 +32,15 @@ export const movingAverageConvergenceDivergence = (
 		{ name: 'smoothing', value: smoothing },
 	]);
 
-	marketData.indicatorKeys[indicatorKey] = {
+	marketData.indicators.push({
+		indicatorKey,
 		indicatorId: 4,
 		parameters: [
 			{ name: 'longPeriod', value: longPeriod },
 			{ name: 'shortPeriod', value: shortPeriod },
 			{ name: 'smoothing', value: smoothing },
 		],
-	};
+	});
 
 	for (let i = 0; i < marketData.data.length; i++) {
 		marketData.data[i][6] = {

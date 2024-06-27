@@ -57,7 +57,7 @@ export const getMarketData = async (
 	}
 
 	const marketData: MarketData = {
-		indicatorKeys: {},
+		indicators: [],
 
 		data: await queryMarketData(
 			pair.id,
@@ -80,6 +80,12 @@ export const getMarketData = async (
 			);
 		}
 
+		// Remove unnecessary indicators in the indicatorKeys
+		marketData.indicators = marketData.indicators.filter((ik) =>
+			indicatorsNeeded.includes(ik.indicatorKey),
+		);
+
+		// Remove unnecessary indicators in the data
 		marketData.data.map((data) => {
 			data[6] = Object.fromEntries(
 				Object.entries(data[6]).filter(([key]) =>
@@ -87,12 +93,6 @@ export const getMarketData = async (
 				),
 			);
 		});
-
-		marketData.indicatorKeys = Object.fromEntries(
-			Object.entries(marketData.indicatorKeys).filter(([key]) =>
-				indicatorsNeeded.includes(key),
-			),
-		);
 	}
 
 	marketData.data = marketData.data.filter((data) =>

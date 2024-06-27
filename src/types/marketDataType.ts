@@ -9,14 +9,13 @@ export type MarketDataBlock = [
 ];
 
 export interface MarketData {
-	indicatorKeys: {
-		[key: string]: {
-			indicatorId: number;
-			parameters: {
-				name: string;
-				value: number;
-			}[];
-		};
-	};
+	indicators: {
+		indicatorId: number;
+		indicatorKey: string;
+		parameters: {
+			name: string;
+			value: number;
+		}[];
+	}[];
 	data: Array<MarketDataBlock>;
 }

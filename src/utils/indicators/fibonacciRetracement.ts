@@ -8,14 +8,17 @@ export const fibonacciRetracement = (
 		?.value as number;
 	const indicatorKey = `fib_${period}`;
 
-	if (indicatorKey in marketData.indicatorKeys) {
+	if (
+		marketData.indicators.map((ik) => ik.indicatorKey).includes(indicatorKey)
+	) {
 		return indicatorKey;
 	}
 
-	marketData.indicatorKeys[indicatorKey] = {
+	marketData.indicators.push({
+		indicatorKey,
 		indicatorId: 6,
 		parameters: [{ name: 'period', value: period }],
-	};
+	});
 
 	for (let i = 0; i < marketData.data.length; i++) {
 		if (i < period - 1) {

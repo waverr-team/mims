@@ -12,17 +12,20 @@ export const exponentialMovingAverage = (
 		?.value as number;
 	const indicatorKey = `ema_${period}_${smoothing}`;
 
-	if (indicatorKey in marketData.indicatorKeys) {
+	if (
+		marketData.indicators.map((ik) => ik.indicatorKey).includes(indicatorKey)
+	) {
 		return indicatorKey;
 	}
 
-	marketData.indicatorKeys[indicatorKey] = {
+	marketData.indicators.push({
+		indicatorKey,
 		indicatorId: 2,
 		parameters: [
 			{ name: 'period', value: period },
 			{ name: 'smoothing', value: smoothing },
 		],
-	};
+	});
 
 	for (let i = 0; i < marketData.data.length; i++) {
 		if (i < period - 1) {

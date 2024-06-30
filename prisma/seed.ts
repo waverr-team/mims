@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { type Broker, PrismaClient, Pair } from '@prisma/client';
 import { parse } from 'csv-parse/sync';
 import dayjs from 'dayjs';
@@ -24,38 +24,52 @@ async function main() {
 		],
 	});
 
-	const coinbase = await prisma.broker.findFirst({
+	const coinbase = (await prisma.broker.findFirst({
 		where: {
 			name: 'COINBASE',
 		},
-	});
+	})) as Broker;
 
-	if (!coinbase) {
-		throw new Error('Coinbase not found');
+	const binance = (await prisma.broker.findFirst({
+		where: {
+			name: 'BINANCE',
+		},
+	})) as Broker;
+
+	// Load crypto_data.csv
+
+	const filePath = './prisma/crypto_data.csv';
+
+	if (!existsSync(filePath)) {
+		throw new Error('Seed file not found');
 	}
-
-	// Load raw_crypto.csv
-
-	const csvFile = await readFileSync('./prisma/raw_crypto.csv', 'utf-8');
+	const csvFile = readFileSync(filePath, 'utf-8');
 
 	const cryptoData = parse(csvFile, {
 		columns: true,
 		skip_empty_lines: true,
 	}) as {
-		symbol: string;
 		open: string;
 		high: string;
 		low: string;
 		close: string;
 		volume: string;
 		timestamp: string;
+		broker: string;
+		base: string;
+		quote: string;
 	}[];
 
 	const symbolList = Array.from(
-		new Set(cryptoData.map((crypto) => crypto.symbol)),
+		new Set(
+			cryptoData.map((crypto) =>
+				[crypto.base, crypto.quote, crypto.broker].join('/'),
+			),
+		),
 	).map((symbol) => ({
 		base: symbol.split('/')[0],
 		quote: symbol.split('/')[1],
+		broker: symbol.split('/')[2],
 	}));
 
 	// Seed the pairs
@@ -64,7 +78,7 @@ async function main() {
 		data: symbolList.map((pair) => ({
 			base: pair.base,
 			quote: pair.quote,
-			brokerId: coinbase.id,
+			brokerId: pair.broker === 'COINBASE' ? coinbase.id : binance.id,
 		})),
 	});
 
@@ -73,7 +87,7 @@ async function main() {
 	// Prepare market data
 
 	const marketData = cryptoData.map((crypto) => ({
-		date: dayjs.utc(crypto.timestamp, 'YYYY-MM-DD HH:mm:ss').toISOString(),
+		date: dayjs.utc(Number(crypto.timestamp)).toISOString(),
 		open: Number(crypto.open),
 		high: Number(crypto.high),
 		low: Number(crypto.low),
@@ -81,8 +95,10 @@ async function main() {
 		volume: Number(crypto.volume),
 		pairId: pairs.find(
 			(pair) =>
-				pair.base === crypto.symbol.split('/')[0] &&
-				pair.quote === crypto.symbol.split('/')[1],
+				pair.base === crypto.base &&
+				pair.quote === crypto.quote &&
+				pair.brokerId ===
+					(crypto.broker === 'COINBASE' ? coinbase.id : binance.id),
 		)?.id as string,
 	}));
 

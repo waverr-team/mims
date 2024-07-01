@@ -134,7 +134,6 @@ export const getMarketDataSchema = z.object({
 					}),
 				])
 				.array()
-				.nonempty()
 				.optional(),
 		})
 		.superRefine((val, ctx) => {

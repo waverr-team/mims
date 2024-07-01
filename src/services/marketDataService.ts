@@ -60,7 +60,7 @@ const queryMarketData = async (
 	let maxPeriod: number | undefined;
 	const intervalDuration = dayjs.duration(interval);
 
-	if (typeof indicators !== 'undefined') {
+	if (typeof indicators !== 'undefined' && indicators.length > 0) {
 		maxPeriod = Math.max(
 			...indicators.flatMap((indicator) =>
 				indicator.parameters.map((p) => p.value),
@@ -87,8 +87,8 @@ const queryMarketData = async (
 				time_bucket(${interval}::interval, date) AS time_bucket,
 				rollup(candlestick(date, open, high, low, close, volume))
 			FROM market_data
-			where "pairId"= ${pairId} 
-			AND date >= ${ajustedStart.toDate()} 
+			where "pairId"= ${pairId}
+			AND date >= ${ajustedStart.toDate()}
 			AND date < ${end}
 			group by time_bucket
 		) AS _(date, candlestick)

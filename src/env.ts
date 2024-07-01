@@ -9,6 +9,7 @@ const env = envalid.cleanEnv(process.env, {
 	NODE_ENV: envalid.str({ choices: ['development', 'production'] }),
 	TIMESCALE_URL: envalid.url(),
 	SONAR_URL: envalid.url(),
+	PREDATOR_URL: envalid.url(),
 });
 
 export default env;

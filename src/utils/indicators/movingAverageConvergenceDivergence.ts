@@ -43,14 +43,21 @@ export const movingAverageConvergenceDivergence = (
 	});
 
 	for (let i = 0; i < marketData.data.length; i++) {
-		marketData.data[i][6] = {
-			...marketData.data[i][6],
-			[indicatorKey]: {
-				value:
-					(marketData.data[i][6][emaShort]?.value as number) -
-					(marketData.data[i][6][emaLong]?.value as number),
-			},
-		};
+		if (i < longPeriod - 1) {
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: null,
+			};
+		} else {
+			marketData.data[i][6] = {
+				...marketData.data[i][6],
+				[indicatorKey]: {
+					value:
+						(marketData.data[i][6][emaShort]?.value as number) -
+						(marketData.data[i][6][emaLong]?.value as number),
+				},
+			};
+		}
 	}
 
 	return indicatorKey;

@@ -20,7 +20,7 @@ export const bollingerBands = (
 
 	marketData.indicators.push({
 		indicatorKey,
-		indicatorId: 1,
+		indicatorId: 7,
 		parameters: [
 			{ name: 'period', value: period },
 			{ name: 'deviation', value: deviation },

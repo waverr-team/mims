@@ -132,6 +132,15 @@ export const getMarketDataSchema = z.object({
 								return keys.includes('period') && keys.includes('deviation');
 							}),
 					}),
+					z.object({
+						name: z.literal('prediction'),
+						parameters: z
+							.array(z.object({ value: z.number() }))
+							.refine((val) => val.length === 0, {
+								message:
+									'Prediction does not require parameters, set an empty array',
+							}),
+					}),
 				])
 				.array()
 				.optional(),

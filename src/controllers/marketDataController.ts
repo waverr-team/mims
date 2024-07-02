@@ -28,9 +28,13 @@ export const fetchMarketData = async (req: Request, res: Response) => {
 		req.body as FetchMarketDataSchema['body'],
 	);
 
-	// await marketDataService.fetchPrediction(
-	// 	req.body as FetchMarketDataSchema['body'],
-	// );
+	const predictionResult = await marketDataService.fetchPrediction(
+		req.body as FetchMarketDataSchema['body'],
+	);
 
-	res.json({ message: 'Market data fetched' });
+	res.json({
+		message: predictionResult
+			? 'Market data fetched and prediction done'
+			: 'Market data fetched but prediction failed because of missing data',
+	});
 };

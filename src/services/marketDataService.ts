@@ -13,6 +13,7 @@ import type { MarketData, MarketDataBlock } from '../types/marketDataType';
 import { indicatorsFunctions } from '../utils/indicators';
 import { predictionPairs } from '../utils/constants/predictionPairs';
 import env from '../env';
+import { Response } from 'express';
 
 dayjs.extend(duration);
 dayjs.extend(utc);
@@ -80,12 +81,13 @@ const queryMarketData = async (
 			open(candlestick),
 			high(candlestick),
 			low(candlestick),
-			volume(candlestick)]
-
+			volume(candlestick)],
+			prediction
 		FROM (
 			SELECT
 				time_bucket(${interval}::interval, date) AS time_bucket,
-				rollup(candlestick(date, open, high, low, close, volume))
+				rollup(candlestick(date, open, high, low, close, volume)),
+				last(prediction, date) as prediction
 			FROM market_data
 			where "pairId"= ${pairId}
 			AND date >= ${ajustedStart.toDate()}
@@ -93,10 +95,20 @@ const queryMarketData = async (
 			group by time_bucket
 		) AS _(date, candlestick)
 		order by date ASC;
-	`) as { array: Array<number> }[];
+	`) as { array: number[]; prediction?: number[] }[];
 
 	const marketData: MarketData = {
-		indicators: [],
+		indicators: indicators
+			?.map((indicator) => indicator.name)
+			.includes('prediction')
+			? [
+					{
+						indicatorKey: 'prediction',
+						indicatorId: 0,
+						parameters: [],
+					},
+				]
+			: [],
 
 		data: rawMarketData.map((data) => {
 			const [date, close, open, high, low, volume] = data.array;
@@ -108,15 +120,38 @@ const queryMarketData = async (
 				low,
 				close,
 				volume,
-				{},
+				{
+					...(indicators
+						?.map((indicator) => indicator.name)
+						.includes('prediction') && {
+						prediction: data.prediction?.reduce<Record<string, number>>(
+							(acc, val, i) => ({
+								// biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+								...acc,
+								[dayjs
+									.utc(date * 1000)
+									.add(15 * (i + 1), 'm')
+									.toISOString()]: val,
+							}),
+							{},
+						),
+					}),
+				},
 			];
 		}),
 	};
 
 	if (typeof indicators !== 'undefined') {
-		const indicatorsNeeded: string[] = [];
+		const indicatorsNeeded: string[] = [
+			...(indicators?.map((indicator) => indicator.name).includes('prediction')
+				? ['prediction']
+				: []),
+		];
 
 		for (const indicator of indicators) {
+			if (indicator.name === 'prediction') {
+				continue;
+			}
 			indicatorsNeeded.push(
 				indicatorsFunctions[indicator.name](
 					marketData,
@@ -164,7 +199,7 @@ export const fetchMarketData = async (body: FetchMarketDataSchema['body']) => {
 
 	const getMarketData = async (pair: Pair, timestamp: number) => {
 		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 10000);
+		const timeout = setTimeout(() => controller.abort(), 15000);
 
 		const sonarQuery = new URL(`${env.SONAR_URL}/binance/ohlcv`);
 		sonarQuery.searchParams.append('symbol', `${pair.base}${pair.quote}`);
@@ -257,7 +292,7 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 	const ethData = (
 		await queryMarketData(
 			ethPair.id,
-			dayjs.utc(date).subtract(1, 'day').toDate(),
+			dayjs.utc(date).subtract(2, 'day').toDate(),
 			dayjs.utc(date).toDate(),
 			dayjs.duration({ minutes: 15 }).toISOString(),
 			[
@@ -297,7 +332,7 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 		const targetData = (
 			await queryMarketData(
 				targetPair.id,
-				dayjs.utc(date).subtract(1, 'day').toDate(),
+				dayjs.utc(date).subtract(2, 'day').toDate(),
 				dayjs.utc(date).toDate(),
 				dayjs.duration({ minutes: 15 }).toISOString(),
 				[
@@ -343,7 +378,11 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 			...ethData.find((d) => d.timestamp === data[0]),
 		}));
 
-		const prediction = await fetch(`${env.PREDATOR_URL}/predict`, {
+		if (targetData.length !== 2 * 24 * 4) {
+			return false;
+		}
+
+		const predictionResponse = await fetch(`${env.PREDATOR_URL}/predict`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -361,8 +400,19 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 				);
 			});
 
-		console.log(prediction);
+		await prisma.marketData.update({
+			where: {
+				pairId_date: {
+					pairId: targetPair.id,
+					date: dayjs.utc(date).toISOString(),
+				},
+			},
+			data: {
+				prediction: predictionResponse.prediction,
+			},
+		});
+		return true;
 	});
 
-	await Promise.all(predictionPromises);
+	return (await Promise.all(predictionPromises)).every((result) => result);
 }

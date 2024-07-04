@@ -134,12 +134,7 @@ export const getMarketDataSchema = z.object({
 					}),
 					z.object({
 						name: z.literal('prediction'),
-						parameters: z
-							.array(z.object({ value: z.number() }))
-							.refine((val) => val.length === 0, {
-								message:
-									'Prediction does not require parameters, set an empty array',
-							}),
+						parameters: z.array(z.never()),
 					}),
 				])
 				.array()

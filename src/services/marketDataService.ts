@@ -62,11 +62,13 @@ const queryMarketData = async (
 	const intervalDuration = dayjs.duration(interval);
 
 	if (typeof indicators !== 'undefined' && indicators.length > 0) {
-		maxPeriod = Math.max(
-			...indicators.flatMap((indicator) =>
-				indicator.parameters.map((p) => p.value),
-			),
-		);
+		maxPeriod = indicators
+			.flatMap((indicator) =>
+				indicator.parameters.filter(
+					(p) => p.name === 'period' || p.name === 'longPeriod',
+				),
+			)
+			.reduce((acc, val) => Math.max(acc, val.value), 0);
 
 		ajustedStart = ajustedStart.subtract(
 			intervalDuration.asMinutes() * maxPeriod,

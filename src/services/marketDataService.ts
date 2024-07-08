@@ -291,6 +291,8 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 		);
 	}
 
+	console.log("ETH Pair found");
+
 	const ethData = (
 		await queryMarketData(
 			ethPair.id,
@@ -316,6 +318,8 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 		ETHUSDT_rsi: data[6].rsi_14?.value,
 	}));
 
+	console.log("ETH Data fetched");
+
 	const predictionPromises = predictionPairs.map(async (pair) => {
 		const targetPair = (await prisma.pair.findFirst({
 			where: {
@@ -330,6 +334,8 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 		if (!targetPair) {
 			throw new AppError('Pair not found', StatusCodes.NOT_FOUND);
 		}
+
+		console.log(`Pair ${pair.base}/${pair.quote} found`);
 
 		const targetData = (
 			await queryMarketData(
@@ -380,9 +386,13 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 			...ethData.find((d) => d.timestamp === data[0]),
 		}));
 
+		console.log(`Pair ${pair.base}/${pair.quote} data fetched`);
+
 		if (targetData.length !== 2 * 24 * 4) {
 			return false;
 		}
+
+		console.log(`Pair ${pair.base}/${pair.quote} data complete`);
 
 		const predictionResponse = await fetch(`${env.PREDATOR_URL}/predict`, {
 			method: 'POST',
@@ -394,7 +404,10 @@ export async function fetchPrediction(body: FetchMarketDataSchema['body']) {
 				symbol: `${pair.base}${pair.quote}`,
 			}),
 		})
-			.then((res) => res.json())
+			.then((res) => {
+				console.log(`Pair ${pair.base}/${pair.quote} prediction fetched`)
+				return res.json()
+			})
 			.catch((err) => {
 				throw new AppError(
 					'PREDATOR inaccessible',

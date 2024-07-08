@@ -28,9 +28,12 @@ export const fetchMarketData = async (req: Request, res: Response) => {
 		req.body as FetchMarketDataSchema['body'],
 	);
 
+	console.log("Market data fetched");
+	console.log("Prediction…");
 	const predictionResult = await marketDataService.fetchPrediction(
 		req.body as FetchMarketDataSchema['body'],
 	);
+	console.log("Prediction done!");
 
 	res.json({
 		message: predictionResult
